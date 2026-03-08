@@ -46,20 +46,36 @@ export const SpainMap: React.FC<MapProps> = ({ mode, currentTarget, onSelect, fe
     fetchMaps();
   }, []);
 
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [dimensions, setDimensions] = useState({ width: 800, height: 600 });
+
+  useEffect(() => {
+    if (!containerRef.current) return;
+    const resizeObserver = new ResizeObserver((entries) => {
+      for (let entry of entries) {
+        setDimensions({
+          width: entry.contentRect.width,
+          height: entry.contentRect.height
+        });
+      }
+    });
+    resizeObserver.observe(containerRef.current);
+    return () => resizeObserver.disconnect();
+  }, []);
+
   useEffect(() => {
     if (!svgRef.current || (!geoData && !provincesData)) return;
 
     const svg = d3.select(svgRef.current);
     svg.selectAll('*').remove();
 
-    const width = 800;
-    const height = 600;
+    const { width, height } = dimensions;
 
     // Projection focused on Spain
     const projection = d3.geoConicConformal()
       .center([-3.7, 40])
       .parallels([35, 45])
-      .scale(2800)
+      .scale(Math.min(width, height) * 3.5) // Scale based on smaller dimension
       .translate([width / 2, height / 2]);
 
     const pathGenerator = d3.geoPath().projection(projection);
@@ -85,27 +101,33 @@ export const SpainMap: React.FC<MapProps> = ({ mode, currentTarget, onSelect, fe
         .attr('stroke-width', 0.5);
     }
 
-    // Add a box for Canary Islands BEFORE regions so regions are on top
+    // Add a box for Canary Islands
+    const canaryBox = {
+      x: width * 0.05,
+      y: height * 0.7,
+      w: width * 0.25,
+      h: height * 0.25
+    };
+
     g.append('rect')
-      .attr('x', 20)
-      .attr('y', 420)
-      .attr('width', 220)
-      .attr('height', 140)
+      .attr('x', canaryBox.x)
+      .attr('y', canaryBox.y)
+      .attr('width', canaryBox.w)
+      .attr('height', canaryBox.h)
       .attr('fill', 'white')
       .attr('stroke', '#94a3b8')
       .attr('stroke-dasharray', '4,4')
       .attr('stroke-width', 1)
       .attr('rx', 10);
 
-    // Helper to handle Canary Islands shift in the GeoJSON
+    // Helper to handle Canary Islands shift
     const processFeatures = (features: any[]) => {
       return features.map(f => {
         const feature = JSON.parse(JSON.stringify(f));
         const name = feature.properties.name || '';
         if (name.includes('Canarias') || name.includes('Palmas') || name.includes('Tenerife')) {
-          // Adjusted shift to fit exactly in the box [20, 420, 220, 140]
-          const shiftX = 5.5;
-          const shiftY = 7.0;
+          const shiftX = 4.0;
+          const shiftY = 6.0;
           if (feature.geometry.type === 'MultiPolygon') {
             feature.geometry.coordinates = feature.geometry.coordinates.map((poly: any) => 
               poly.map((ring: any) => ring.map((coord: any) => [coord[0] + shiftX, coord[1] + shiftY]))
@@ -297,11 +319,11 @@ export const SpainMap: React.FC<MapProps> = ({ mode, currentTarget, onSelect, fe
   }, [geoData, provincesData, worldData, mode, feedback, selectedId, onSelect]);
 
   return (
-    <div className="relative w-full h-full flex items-center justify-center bg-sky-50 rounded-3xl overflow-hidden border-4 border-white shadow-inner">
+    <div ref={containerRef} className="relative w-full h-full flex items-center justify-center bg-sky-50 rounded-3xl overflow-hidden border-4 border-white shadow-inner">
       <svg
         ref={svgRef}
-        viewBox="0 0 800 600"
-        className="w-full h-full max-h-[80vh]"
+        viewBox={`0 0 ${dimensions.width} ${dimensions.height}`}
+        className="w-full h-full"
       />
     </div>
   );

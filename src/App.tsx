@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Trophy, Map as MapIcon, Waves, Mountain, MapPin, RefreshCw, ChevronLeft } from 'lucide-react';
+import { Trophy, Map as MapIcon, Waves, Mountain, MapPin, RefreshCw, ChevronLeft, Info } from 'lucide-react';
 import { SpainMap } from './components/SpainMap';
+import { EducationalResources } from './components/EducationalResources';
 import { GameMode, GameState, GeoElement } from './types';
 import { COMMUNITIES, PROVINCES } from './data';
 
@@ -22,6 +23,7 @@ export default function App() {
   });
 
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [showDocs, setShowDocs] = useState(false);
 
   const startGame = (mode: GameMode) => {
     let targets: GeoElement[] = [];
@@ -117,40 +119,77 @@ export default function App() {
       isGameOver: false,
     });
     setSelectedId(null);
+    setShowDocs(false);
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 font-sans flex flex-col">
+    <div className="min-h-screen bg-slate-50 font-sans flex flex-col overflow-y-auto">
       {/* Header */}
-      <header className="bg-white border-b border-slate-200 px-6 py-4 flex items-center justify-between shadow-sm">
+      <header className="bg-white border-b border-slate-200 px-6 py-4 flex items-center justify-between shadow-sm sticky top-0 z-50">
         <div className="flex items-center gap-3">
-          <div className="bg-orange-500 p-2 rounded-lg text-white">
+          <button 
+            onClick={resetGame}
+            className="bg-orange-500 p-2 rounded-lg text-white hover:bg-orange-600 transition-colors"
+          >
             <MapIcon size={24} />
-          </div>
-          <h1 className={`text-xl font-display font-bold text-slate-800 transition-opacity duration-500 ${gameState.mode ? 'opacity-100' : 'opacity-0'}`}>
+          </button>
+          <h1 className={`text-xl font-display font-bold text-slate-800 transition-opacity duration-500 ${gameState.mode || showDocs ? 'opacity-100' : 'opacity-0'}`}>
             Explora España
           </h1>
         </div>
         
-        {gameState.mode && (
-          <div className="flex items-center gap-6">
-            <div className="flex flex-col items-end">
-              <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Puntuación</span>
-              <span className="text-2xl font-display font-black text-orange-500">{gameState.score} / {gameState.total}</span>
+        <div className="flex items-center gap-4">
+          {gameState.mode && !gameState.isGameOver && (
+            <div className="flex items-center gap-6">
+              <div className="flex flex-col items-end">
+                <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Puntuación</span>
+                <span className="text-2xl font-display font-black text-orange-500">{gameState.score} / {gameState.total}</span>
+              </div>
+              <button 
+                onClick={resetGame}
+                className="p-2 hover:bg-slate-100 rounded-full transition-colors text-slate-500"
+                title="Reiniciar juego"
+              >
+                <RefreshCw size={20} />
+              </button>
             </div>
+          )}
+          
+          {!gameState.mode && !showDocs && (
             <button 
-              onClick={resetGame}
-              className="p-2 hover:bg-slate-100 rounded-full transition-colors text-slate-500"
+              onClick={() => setShowDocs(true)}
+              className="p-2 hover:bg-indigo-50 rounded-full transition-colors text-indigo-500 flex items-center gap-2 font-bold"
+              title="Información educativa"
             >
-              <RefreshCw size={20} />
+              <Info size={24} />
+              <span className="hidden sm:inline">Info</span>
             </button>
-          </div>
-        )}
+          )}
+        </div>
       </header>
 
-      <main className="flex-1 p-6 flex flex-col items-center justify-center relative max-w-7xl mx-auto w-full">
+      <main className={`flex-1 flex flex-col items-center relative max-w-7xl mx-auto w-full ${gameState.mode && !gameState.isGameOver ? 'min-h-[calc(100vh-80px)]' : 'p-6 justify-center'}`}>
         <AnimatePresence mode="wait">
-          {!gameState.mode ? (
+          {showDocs ? (
+            <motion.div
+              key="docs"
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -20 }}
+              className="flex flex-col items-center w-full"
+            >
+              <div className="w-full max-w-4xl flex justify-start mb-4">
+                <button 
+                  onClick={() => setShowDocs(false)}
+                  className="flex items-center gap-2 text-slate-400 hover:text-slate-600 font-bold transition-colors"
+                >
+                  <ChevronLeft size={20} />
+                  Volver al inicio
+                </button>
+              </div>
+              <EducationalResources />
+            </motion.div>
+          ) : !gameState.mode ? (
             <motion.div 
               key="menu"
               initial={{ opacity: 0, y: 20 }}
@@ -249,9 +288,9 @@ export default function App() {
               key="game"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
-              className="w-full h-full flex flex-col gap-6"
+              className="w-full flex-1 flex flex-col gap-4 p-4 min-h-[600px]"
             >
-              <div className="flex items-center justify-between w-full">
+              <div className="flex items-center justify-between w-full shrink-0">
                 <button 
                   onClick={resetGame}
                   className="flex items-center gap-2 text-slate-400 hover:text-slate-600 font-bold transition-colors"
@@ -261,9 +300,9 @@ export default function App() {
                 </button>
                 
                 <div className="flex-1 flex justify-center">
-                  <div className="bg-white px-8 py-4 rounded-2xl shadow-sm border-2 border-slate-100 flex flex-col items-center">
-                    <span className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-1">Busca en el mapa:</span>
-                    <span className="text-3xl font-display font-black text-slate-800">
+                  <div className="bg-white px-6 py-3 rounded-2xl shadow-sm border-2 border-slate-100 flex flex-col items-center">
+                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest leading-none mb-1">Busca en el mapa:</span>
+                    <span className="text-2xl md:text-3xl font-display font-black text-slate-800 leading-none">
                       {gameState.currentTarget?.name === 'País Vasco' ? 'País Vasco / Euskadi' : 
                        gameState.currentTarget?.name === 'Cataluña' ? 'Cataluña / Catalunya' : 
                        gameState.currentTarget?.name}
@@ -274,7 +313,7 @@ export default function App() {
                 <div className="w-24"></div> {/* Spacer */}
               </div>
 
-              <div className="flex-1 relative min-h-[500px]">
+              <div className="flex-1 relative w-full h-full overflow-hidden rounded-3xl bg-white/50 border border-slate-100">
                 <SpainMap 
                   mode={gameState.mode} 
                   currentTarget={gameState.currentTarget}
@@ -304,9 +343,9 @@ export default function App() {
       </main>
 
       {/* Footer / Tips */}
-      {!gameState.mode && (
-        <footer className="p-8 text-center text-slate-400 text-sm">
-          Desarrollado para mentes curiosas • Geografía de España 2026
+      {!gameState.mode && !showDocs && (
+        <footer className="p-8 text-center text-slate-400 text-sm w-full border-t border-slate-100 shrink-0">
+          Desarrollado para mentes curiosas • Geografía de España 2024 • Recursos Educativos para Primaria
         </footer>
       )}
     </div>
