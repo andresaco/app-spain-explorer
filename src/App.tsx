@@ -306,7 +306,7 @@ export default function App() {
       {/* Footer / Tips */}
       {!gameState.mode && (
         <footer className="p-8 text-center text-slate-400 text-sm">
-          Desarrollado para mentes curiosas • Geografía de España 2024
+          Desarrollado para mentes curiosas • Geografía de España 2026
         </footer>
       )}
     </div>

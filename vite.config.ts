@@ -8,6 +8,12 @@ export default defineConfig(({mode}) => {
   return {
     base: './',
     plugins: [react(), tailwindcss()],
+    optimizeDeps: {
+      include: ['motion/react'],
+    },
+    ssr: {
+      noExternal: ['motion/react'],
+    },
     define: {
       'process.env.GEMINI_API_KEY': JSON.stringify(env.GEMINI_API_KEY),
     },
